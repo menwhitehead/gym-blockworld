@@ -8,6 +8,7 @@ from pyglet import image
 from pyglet.gl import *
 from pyglet.graphics import TextureGroup
 from pyglet.window import key, mouse
+from ctypes import *
 
 from PIL import Image
 
@@ -319,24 +320,14 @@ class Model(object):
         o.close()
 
 
-class Window(pyglet.window.Window):
+class Game:
 
-    def __init__(self, *args, **kwargs):
-        super(Window, self).__init__(*args, **kwargs)
-
-        # Whether or not the window exclusively captures the mouse.
-        self.exclusive = False
-
+    def __init__(self):
         # Which sector the player is currently in.
         self.sector = None
 
         # The crosshairs at the center of the screen.
         self.reticle = None
-
-        # Convenience list of num keys.
-        self.num_keys = [
-            key._1, key._2, key._3, key._4, key._5,
-            key._6, key._7, key._8, key._9, key._0]
 
         # Instance of the model that handles the world.
         self.model = Model()
@@ -346,19 +337,6 @@ class Window(pyglet.window.Window):
 
         # Number of ticks gone by in the world
         self.world_counter = 0
-
-        # The label that is displayed in the top left of the canvas.
-        # self.label = pyglet.text.Label('', font_name='Arial', font_size=22, bold=True,
-        #     x=20, y=self.height - 10, anchor_x='left', anchor_y='top',
-        #     color=(0,0,0,255))
-
-        # This call schedules the `update()` method to be called
-        # TICKS_PER_SEC. This is the main game event loop.
-        #pyglet.clock.set_fps_limit(1000)
-        #pyglet.clock.schedule_interval(self.update, 1.0 / TICKS_PER_SEC)
-        #pyglet.clock.schedule(self.update)
-
-        #self.current_frame = [[.76, .67],[.88, .91]]
 
         # Int flag to indicate the end of the game
         # This is set to 1 whenever the max frames are reached
@@ -371,8 +349,7 @@ class Window(pyglet.window.Window):
     def reset(self):
         self.game_counter += 1
         self.player.task.reset(self.game_counter, self.player.total_score)
-        self.set_rgb();
-        # Setup grayscale conversion color component scaling values
+        set_rgb();
         self.model = Model()
         self.world_counter = 0
         self.exclusive = False
@@ -381,45 +358,16 @@ class Window(pyglet.window.Window):
         self.game_over = False
         self.player.reset()
         self.player.setGame(self)
-        world_file = "test%d.txt" % random.randrange(10)
+        world_file = "curr_map.txt"
         self.player.task.generateGameWorld(world_file)
         self.model.loadMap(world_file)
-        self.set_grayscale()
-
-    def set_grayscale(self):
-        """
-        Set pixel proportions to gray scale
-        """
-        glPixelTransferf(GL_RED_SCALE, 0.299)
-        glPixelTransferf(GL_GREEN_SCALE, 0.587)
-        glPixelTransferf(GL_BLUE_SCALE, 0.114)
-
-
-    def set_rgb(self):
-        """
-        Set pixel proportions to color
-        """
-        glPixelTransferf(GL_RED_SCALE, 1.0)
-        glPixelTransferf(GL_GREEN_SCALE, 1.0)
-        glPixelTransferf(GL_BLUE_SCALE, 1.0)
-
-
-    def set_phase(self, evaluate):
-        self.evaluate = evaluate
+        set_grayscale()
 
     def set_player(self, player):
         self.player = player
 
     def set_game_frame_limit(self, max_frames):
         self.max_frames = max_frames
-
-    def set_exclusive_mouse(self, exclusive):
-        """ If `exclusive` is True, the game will capture the mouse, if False
-        the game will ignore the mouse.
-        """
-        super(Window, self).set_exclusive_mouse(exclusive)
-        self.exclusive = exclusive
-
 
     def update(self, dt):
         """ This method is scheduled to be called repeatedly by the pyglet
@@ -487,33 +435,7 @@ class Window(pyglet.window.Window):
         # Initialize an array to store the screenshot pixels
         screenshot = (GLubyte * (PIXEL_BYTE_SIZE * self.width * self.height))(0)
         # Grab a screenshot
-        # Use GL_RGB for color and GL_LUMINANCE for grayscale!
-        #glReadPixels(0, 0, self.width, self.height, GL_RGB, GL_UNSIGNED_BYTE, screenshot)
-        # Setup grayscale conversion color component scaling values
         glReadPixels(0, 0, self.width, self.height, GL_LUMINANCE, GL_UNSIGNED_BYTE, screenshot)
-
-        if (self.evaluate):
-            # need to scale screen
-            image = Image.fromstring(mode="L", size=(self.width, self.height),
-                                     data=screenshot)
-            image = image.resize((TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE))
-
-            #image.save("screenshots/frame%08d.png" % self.world_counter)
-            screenshot = image.getdata()
-            #print (list(screenshot))
-            #print (len(list(screenshot)))
-            #image.show()
-            #raw_input("Enter")
-
-            if ANIMATION_GENERATION:
-                PIXEL_BYTE_SIZE_RGB = 4  # Use 1 for grayscale, 4 for RGBA
-                screenshot_rgb = (GLubyte * (PIXEL_BYTE_SIZE_RGB * self.width * self.height))(0)
-                self.set_rgb()
-                glReadPixels(0, 0, self.width, self.height, GL_RGB, GL_UNSIGNED_BYTE, screenshot_rgb)
-                self.set_grayscale()
-                im_rgb = Image.frombytes(mode="RGB", size=(TEST_WINDOW_SIZE, TEST_WINDOW_SIZE), data=screenshot_rgb)
-                #print "SAVING screenshots/frame%08d_%08d.png" % (self.game_counter, self.world_counter/4)
-                im_rgb.save("screenshots/frame%08d_%08d.png" % (self.game_counter, self.world_counter/4))
 
         return screenshot
 
@@ -568,84 +490,27 @@ class Window(pyglet.window.Window):
 
 
 
-
-
-    def on_key_press(self, symbol, modifiers):
-        """ Called when the player presses a key. See pyglet docs for key
-        mappings.
-
-        Parameters
-        ----------
-        symbol : int
-            Number representing the key that was pressed.
-        modifiers : int
-            Number representing any modifying keys that were pressed.
-
-        """
-
-        if symbol == key.P:
-            print "SAVING WORLD!"
-            self.model.saveWorld()
-        elif symbol == key.ESCAPE:
-            self.set_exclusive_mouse(False)
-            pyglet.app.exit()
-
-
-    def on_key_release(self, symbol, modifiers):
-        """ Called when the player releases a key. See pyglet docs for key
-        mappings.
-
-        Parameters
-        ----------
-        symbol : int
-            Number representing the key that was pressed.
-        modifiers : int
-            Number representing any modifying keys that were pressed.
-
-        """
-        pass
-
-
-    def on_resize(self, width, height):
-        """ Called when the window is resized to a new `width` and `height`.
-
-        """
-        # label
-        #self.label.y = height - 10
-
-        # reticle
-        # if self.reticle:
-        #     self.reticle.delete()
-        # x, y = self.width / 2, self.height / 2
-        # n = 10
-        # self.reticle = pyglet.graphics.vertex_list(4,
-        #     ('v2i', (x - n, y, x + n, y, x, y - n, x, y + n))
-        # )
-
-
     def set_2d(self):
         """ Configure OpenGL to draw in 2d.
-
         """
-        width, height = self.get_size()
         glDisable(GL_DEPTH_TEST)
-        glViewport(0, 0, width, height)
+        glViewport(0, 0, TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        glOrtho(0, width, 0, height, -1, 1)
+        glOrtho(0, TRAIN_WINDOW_SIZE, 0, TRAIN_WINDOW_SIZE, -1, 1)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
 
     def set_3d(self):
         """ Configure OpenGL to draw in 3d.
-
         """
-        width, height = self.get_size()
+        # self.clear()
+        #width, height = self.get_size()
         glEnable(GL_DEPTH_TEST)
-        glViewport(0, 0, width, height)
+        glViewport(0, 0, TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(65.0, width / float(height), 0.1, 60.0)
+        gluPerspective(65.0, 1.0, 0.1, 60.0)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         x, y = self.player.rotation
@@ -653,19 +518,6 @@ class Window(pyglet.window.Window):
         glRotatef(-y, math.cos(math.radians(x)), 0, math.sin(math.radians(x)))
         x, y, z = self.player.position
         glTranslatef(-x, -y, -z)
-
-
-    def on_draw(self):
-        """ Called by pyglet to draw the canvas."""
-        self.clear()
-        self.set_3d()
-        glColor3d(1, 1, 1)
-        self.model.batch.draw()
-        self.draw_focused_block()
-        self.set_2d()
-        self.draw_labels()
-        #self.draw_reticle()
-
 
     def draw_focused_block(self):
         """ Draw black edges around the block that is currently under the
@@ -682,17 +534,6 @@ class Window(pyglet.window.Window):
             pyglet.graphics.draw(24, GL_QUADS, ('v3f/static', vertex_data))
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
 
-    def draw_labels(self):
-        """ Draw the label in the top left of the screen.
-
-        """
-        #x, y, z = self.position
-        #self.label.text = '%02d (%.2f, %.2f, %.2f) %d / %d -- Current spell: %s' % (
-        #    pyglet.clock.get_fps(), x, y, z,
-        #    len(self.model._shown), len(self.model.world), str(self.current_spell))
-        #self.label.text = 'Spell: %s' % (str(self.player.current_spell))
-        #self.label.draw()
-
     def draw_reticle(self):
         """ Draw the crosshairs in the center of the screen.
 
@@ -700,6 +541,15 @@ class Window(pyglet.window.Window):
         glColor3d(0, 0, 0)
         self.reticle.draw(GL_LINES)
 
+    def on_draw(self):
+        """ Called by pyglet to draw the canvas."""
+        self.set_3d()
+        glColor3d(1, 1, 1)
+        self.model.batch.draw()
+        self.draw_focused_block()
+        self.set_2d()
+        self.draw_labels()
+        self.draw_reticle()
 
 
 
@@ -722,58 +572,50 @@ def setup_fog():
     glFogf(GL_FOG_END, 60.0)
 
 
-def opengl_setup():
-    """ Basic OpenGL configuration.
-
+def set_grayscale():
     """
-    # Set the color of "clear", i.e. the sky, in rgba.
-    #glClearColor(0.5, 0.69, 1.0, 1)
-    glClearColor(1, 1, 1.0, 1)
-    # Enable culling (not rendering) of back-facing facets -- facets that aren't
-    # visible to you.
-    glEnable(GL_CULL_FACE)
-    # Set the texture minification/magnification function to GL_NEAREST (nearest
-    # in Manhattan distance) to the specified texture coordinates. GL_NEAREST
-    # "is generally faster than GL_LINEAR, but it can produce textured images
-    # with sharper edges because the transition between texture elements is not
-    # as smooth."
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-    setup_fog()
-
-    # Setup grayscale conversion color component scaling values
+    Set pixel proportions to gray scale
+    """
     glPixelTransferf(GL_RED_SCALE, 0.299)
     glPixelTransferf(GL_GREEN_SCALE, 0.587)
     glPixelTransferf(GL_BLUE_SCALE, 0.114)
 
-"""
 
-def main():
-    window = Window(width=VIEW_WINDOW_SIZE, height=VIEW_WINDOW_SIZE, caption='MindCraft', resizable=True, vsync=False)
+def set_rgb():
+    """
+    Set pixel proportions to color
+    """
+    glPixelTransferf(GL_RED_SCALE, 1.0)
+    glPixelTransferf(GL_GREEN_SCALE, 1.0)
+    glPixelTransferf(GL_BLUE_SCALE, 1.0)
 
-    #p = Player()
-    p = DeepMindPlayer()
+def opengl_setup():
+    """ Basic OpenGL configuration.
+    """
+    # Set the color of "clear", i.e. the sky, in rgba.
+    #glClearColor(0.5, 0.69, 1.0, 1)
+    glClearColor(1, 1, 1.0, 1)
+    glEnable(GL_CULL_FACE)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+    #setup_fog()
+    set_grayscale()
 
-    window.set_player(p)
-    p.setGame(window)
-    world_file = "test%d.txt" % random.randrange(10)
-    generateGameWorld(world_file)
-    window.model.loadMap("maps/%s" % world_file)
+    fbo = c_uint(1)
+    glGenFramebuffers(1, fbo)
 
-    opengl_setup()
+    color = c_uint(1)
+    glGenRenderbuffers(1, color)
 
-    #pyglet.app.run()
-    return window
-
-
-def step(window):
-    pyglet.clock.tick()
-    window.update(100)  # fake ms of time pass
-    window.switch_to()
-    window.dispatch_events()
-    window.dispatch_event('on_draw')
-    window.flip()
-    #time.sleep(2)
-
-
-"""
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo)
+    glBindRenderbuffer(GL_RENDERBUFFER, color)
+    glRenderbufferStorage(
+        GL_RENDERBUFFER,
+        GL_RGBA,
+        TRAIN_WINDOW_SIZE,
+        TRAIN_WINDOW_SIZE,
+    )
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, color)
+    glBindFramebuffer(GL_FRAMEBUFFER, 0)
+    glBindRenderbuffer(GL_RENDERBUFFER, 0)
+    glReadBuffer(GL_COLOR_ATTACHMENT0)
