@@ -17,7 +17,7 @@ from blockworld.envs.engine.game_config import *
 from blockworld.envs.engine.Player import Player
 from blockworld.envs.engine.ActionSet import *
 
-framebuffer = None
+# framebuffer = None
 
 class Model(object):
 
@@ -301,7 +301,7 @@ class Model(object):
 
         """
         start = time.clock()
-        while self.queue and time.clock() - start < 1.0 / TICKS_PER_SEC:
+        while self.queue and time.clock() - start < 1.0 / 5000:
             self._dequeue()
 
     def process_entire_queue(self):
@@ -369,7 +369,7 @@ class Game:
     def set_game_frame_limit(self, max_frames):
         self.max_frames = max_frames
 
-    def update(self, dt):
+    def update(self, dt=1):
         """ This method is scheduled to be called repeatedly by the pyglet
         clock.
 
@@ -379,20 +379,14 @@ class Game:
             The change in time since the last call.
 
         """
-
         self.world_counter += 1
-        self.on_draw()
-        #time.sleep(0.1)
-        #print self.world_counter
-        if self.world_counter >= self.player.task.MAXIMUM_GAME_FRAMES:
-            self.game_over = True
-
-        self.model.process_queue()
+        self.model.process_entire_queue()
         sector = sectorize(self.player.position)
         if sector != self.sector:
             self.model.change_sectors(self.sector, sector)
             if self.sector is None:
                 self.model.process_entire_queue()
+                # self.model.process_queue()
             self.sector = sector
         m = 8
         dt = min(dt, 0.2)
@@ -434,14 +428,14 @@ class Game:
         """Get a screen shot of the current game state"""
         PIXEL_BYTE_SIZE = 4  # Use 1 for grayscale, 4 for RGBA
         # Initialize an array to store the screenshot pixels
-        screenshot = (GLubyte * (PIXEL_BYTE_SIZE * TRAIN_WINDOW_SIZE * TRAIN_WINDOW_SIZE))(0)
+        screenshot = (GLubyte * (PIXEL_BYTE_SIZE * WINDOW_SIZE * WINDOW_SIZE))(0)
         # Grab a screenshot
-        # glReadPixels(0, 0, TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE, GL_LUMINANCE, GL_UNSIGNED_BYTE, screenshot)
-        glReadPixels(0, 0, TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE, GL_RGB, GL_UNSIGNED_BYTE, screenshot)
+        # glReadPixels(0, 0, WINDOW_SIZE, WINDOW_SIZE, GL_LUMINANCE, GL_UNSIGNED_BYTE, screenshot)
+        glReadPixels(0, 0, WINDOW_SIZE, WINDOW_SIZE, GL_RGB, GL_UNSIGNED_BYTE, screenshot)
 
         # return screenshot
 
-        rgb = Image.frombytes(mode="RGB", size=(TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE), data=screenshot)
+        rgb = Image.frombytes(mode="RGB", size=(WINDOW_SIZE, WINDOW_SIZE), data=screenshot)
         return rgb
         # return rgb
 
@@ -500,10 +494,10 @@ class Game:
         """ Configure OpenGL to draw in 2d.
         """
         glDisable(GL_DEPTH_TEST)
-        glViewport(0, 0, TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE)
+        glViewport(0, 0, WINDOW_SIZE, WINDOW_SIZE)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        glOrtho(0, TRAIN_WINDOW_SIZE, 0, TRAIN_WINDOW_SIZE, -1, 1)
+        glOrtho(0, WINDOW_SIZE, 0, WINDOW_SIZE, -1, 1)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
 
@@ -512,10 +506,12 @@ class Game:
         """
         # self.clear()
         #width, height = self.get_size()
-        glViewport(0, 0, TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE)
+        glEnable(GL_DEPTH_TEST)
+
+        glViewport(0, 0, WINDOW_SIZE, WINDOW_SIZE)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(-65.0, 1.0, 0.1, 60.0)
+        gluPerspective(65.0, 1.0, 0.1, 60.0)
         #gluPerspective(-45.0, screenWidth/screenHeight, 1.0, 100.0);
 
         glMatrixMode(GL_MODELVIEW)
@@ -585,10 +581,10 @@ def setup_fog():
 def opengl_setup():
     """ Basic OpenGL configuration.
     """
-    global framebuffer
+    # global framebuffer
     # Set the color of "clear", i.e. the sky, in rgba.
     #glClearColor(0.5, 0.69, 1.0, 1)
-    glClearColor(1, 1, 1.0, 1)
+    glClearColor(0.7, 0.8, 1.0, 1)
 
     glEnable(GL_CULL_FACE)
     glDepthMask(GL_TRUE)
@@ -598,34 +594,30 @@ def opengl_setup():
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
     # setup_fog()
 
-    framebuffer = c_uint(TRAIN_WINDOW_SIZE*TRAIN_WINDOW_SIZE)
-    glGenFramebuffers(1, framebuffer)
-
-    color = c_uint(TRAIN_WINDOW_SIZE*TRAIN_WINDOW_SIZE)
-    glGenRenderbuffers(1, color)
-
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
-    glBindRenderbuffer(GL_RENDERBUFFER, color)
-    glRenderbufferStorage(
-        GL_RENDERBUFFER,
-        GL_RGBA,
-        TRAIN_WINDOW_SIZE,
-        TRAIN_WINDOW_SIZE,
-    )
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, color)
-
-    depth = c_uint(TRAIN_WINDOW_SIZE*TRAIN_WINDOW_SIZE)
-    glGenRenderbuffers(1, depth)
-    glBindRenderbuffer(GL_RENDERBUFFER, depth)
-    glRenderbufferStorage(
-        GL_RENDERBUFFER,
-        GL_DEPTH_COMPONENT24,
-        TRAIN_WINDOW_SIZE,
-        TRAIN_WINDOW_SIZE,
-    )
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth)
-
-
-    # glBindFramebuffer(GL_FRAMEBUFFER, 0)
-    # glBindRenderbuffer(GL_RENDERBUFFER, 0)
-    # glReadBuffer(GL_COLOR_ATTACHMENT0)
+    # framebuffer = c_uint(WINDOW_SIZE*WINDOW_SIZE)
+    # glGenFramebuffers(1, framebuffer)
+    #
+    # color = c_uint(WINDOW_SIZE*WINDOW_SIZE)
+    # glGenRenderbuffers(1, color)
+    #
+    # glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
+    # glBindRenderbuffer(GL_RENDERBUFFER, color)
+    # glRenderbufferStorage(
+    #     GL_RENDERBUFFER,
+    #     GL_RGBA,
+    #     WINDOW_SIZE,
+    #     WINDOW_SIZE,
+    # )
+    # glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, color)
+    #
+    # depth = c_uint(WINDOW_SIZE*WINDOW_SIZE)
+    # glGenRenderbuffers(1, depth)
+    # glBindRenderbuffer(GL_RENDERBUFFER, depth)
+    # glRenderbufferStorage(
+    #     GL_RENDERBUFFER,
+    #     GL_DEPTH_COMPONENT24,
+    #     WINDOW_SIZE,
+    #     WINDOW_SIZE,
+    # )
+    # glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth)
+    #

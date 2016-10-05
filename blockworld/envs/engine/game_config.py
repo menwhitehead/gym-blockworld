@@ -8,25 +8,7 @@ import os
 ##############################
 
 # The width and height of the viewable game window (always square)
-# For maximum speed, set this to 84 to match the scaled size (no scaling is required!)
-TEST_WINDOW_SIZE = 600
-TRAIN_WINDOW_SIZE = 128
-
-# The width and height of the image sent to DeepMind
-#SCALED_WINDOW_SIZE = 84
-
-TICKS_PER_SEC = 6000
-
-# Total number of game frames per episode
-# MOVED TO TASK!
-#MAXIMUM_GAME_FRAMES = 2500
-
-# Agent's turning speed (per tick)
-# AGENT_ROTATION_SPEED = 1.50
-# WALKING_SPEED = 1.0
-
-# How often to print out the total number of frames
-#COUNTER_DISPLAY_FREQUENCY = 1000
+WINDOW_SIZE = 600
 
 ##############
 # Game rules #

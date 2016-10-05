@@ -9,12 +9,12 @@ from blockworld.envs.engine.game_config import *
 
 class Walkway(Task):
 
-    def __init__(self, pwidth=1, plength=100, max_frames = 5000):
+    def __init__(self, pwidth=1, plength=100):
         super(Walkway, self).__init__()
         self.path_length = plength
         self.path_width = pwidth
 
-        self.MAXIMUM_GAME_FRAMES = max_frames
+        # self.MAXIMUM_GAME_FRAMES = max_frames
         self.actions = [GO_FORWARD, GO_BACKWARD, ROTATE_UP, ROTATE_DOWN, ROTATE_RIGHT, ROTATE_LEFT]
 
     def generateGameWorld(self, filename):

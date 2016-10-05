@@ -14,7 +14,7 @@ register(
 register(
     id='BlockworldWalkway-v0',
     entry_point='blockworld.envs:BlockworldWalkway',
-    timestep_limit=100,
+    timestep_limit=1000,
     reward_threshold=1.0,
     nondeterministic = True,
 )
