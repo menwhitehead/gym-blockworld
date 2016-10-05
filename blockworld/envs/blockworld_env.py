@@ -18,27 +18,25 @@ class BlockworldEnv(gym.Env):
     }
 
     def setup(self, task):
-        evaluate = False
-        print ("Initialing in evaluate mode: %s" % str(evaluate))
-        if (evaluate):
-            self.window = Window(width=TEST_WINDOW_SIZE, height=TEST_WINDOW_SIZE, caption='Blockworld', resizable=False, vsync=False)
-        else:
-            self.window = Window(width=TRAIN_WINDOW_SIZE, height=TRAIN_WINDOW_SIZE, caption='Blockworld', resizable=False, vsync=False)
+        self.game = Game()
 
-        self.window.set_phase(evaluate)
+        #self.window.set_phase(evaluate)
         self.p = Player()
         self.p.setTask(task)
-        self.window.set_player(self.p)
-        self.p.setGame(self.window)
+        self.game.set_player(self.p)
+        self.p.setGame(self.game)
         world_file = "/test%d.txt" % random.randrange(10)
         self.p.task.generateGameWorld(world_file)
-        self.window.model.loadMap(world_file)
+        self.game.model.loadMap(world_file)
         opengl_setup()
 
         shape = (TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE)
         self.observation_space = spaces.Box(np.zeros(shape), np.ones(shape))
-        self.action_space = spaces.Discrete(len(self.window.player.task.actions))
+        self.action_space = spaces.Discrete(len(self.game.player.task.actions))
 
+        self.curr_screen = np.array((TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE))
+
+        opengl_setup()
         print("Blockworld successfully initialized")
 
     def update(self):
@@ -46,27 +44,24 @@ class BlockworldEnv(gym.Env):
         Updates the game given the currently set params
         Called from act.
         """
-        dt = pyglet.clock.tick()
-        self.window.update(dt * 1000)
-        self.window.switch_to()
-        self.window.dispatch_events()
-        self.window.dispatch_event('on_draw')
-        self.window.flip()
+        self.game.update(dt * 1000)
+
 
     def _step(self, action):
-        self.window.player.performAction(self.window.player.task.actions[action])  # map to task's actions
+        self.game.player.performAction(self.window.player.task.actions[action])  # map to task's actions
         self.update()
-        reward = float(self.window.player.getReward(action))
-        is_game_over = self.window.game_over or self.window.player.endGameEarly()
-        return self._get_obs(), reward, is_game_over, {}
+        reward = float(self.game.player.getReward(action))
+        is_game_over = self.game.game_over or self.game.player.endGameEarly()
+        self.curr_screen = self._get_obs()
+        return self.curr_screen, reward, is_game_over, {}
 
     def _reset(self):
-        self.window.reset()
+        self.game.reset()
         return self._get_obs()
 
     def _get_obs(self):
-        screen = self.window.get_screen()
+        screen = self.game.get_screen()
         return screen
 
     def _render(self, mode='human', close=False):
-        pass
+        return self.curr_screen
