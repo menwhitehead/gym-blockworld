@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class BlockworldEnv(gym.Env):
     metadata = {
         'render.modes' : ['human', 'rgb_array'],
-        'video.frames_per_second' : 60
+        'video.frames_per_second' : 20
     }
 
     def setup(self, task):
@@ -25,7 +25,7 @@ class BlockworldEnv(gym.Env):
         self.p.setTask(task)
         self.game.set_player(self.p)
         self.p.setGame(self.game)
-        world_file = "/test%d.txt" % random.randrange(10)
+        world_file = "test.txt"
         self.p.task.generateGameWorld(world_file)
         self.game.model.loadMap(world_file)
         opengl_setup()
@@ -34,7 +34,7 @@ class BlockworldEnv(gym.Env):
         self.observation_space = spaces.Box(np.zeros(shape), np.ones(shape))
         self.action_space = spaces.Discrete(len(self.game.player.task.actions))
 
-        self.curr_screen = np.array((TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE))
+        self.curr_screen = np.zeros((TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE, 3), dtype=np.uint8)
 
         opengl_setup()
         print("Blockworld successfully initialized")
@@ -44,11 +44,11 @@ class BlockworldEnv(gym.Env):
         Updates the game given the currently set params
         Called from act.
         """
-        self.game.update(dt * 1000)
+        self.game.update(1)
 
 
     def _step(self, action):
-        self.game.player.performAction(self.window.player.task.actions[action])  # map to task's actions
+        self.game.player.performAction(self.game.player.task.actions[action])  # map to task's actions
         self.update()
         reward = float(self.game.player.getReward(action))
         is_game_over = self.game.game_over or self.game.player.endGameEarly()
@@ -61,7 +61,8 @@ class BlockworldEnv(gym.Env):
 
     def _get_obs(self):
         screen = self.game.get_screen()
-        return screen
+        result = np.array(screen, dtype='uint8')
+        return result.astype(np.uint8)
 
-    def _render(self, mode='human', close=False):
+    def _render(self, mode='rgb_array', close=False):
         return self.curr_screen

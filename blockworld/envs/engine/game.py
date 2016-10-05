@@ -349,7 +349,6 @@ class Game:
     def reset(self):
         self.game_counter += 1
         self.player.task.reset(self.game_counter, self.player.total_score)
-        set_rgb();
         self.model = Model()
         self.world_counter = 0
         self.exclusive = False
@@ -361,7 +360,6 @@ class Game:
         world_file = "curr_map.txt"
         self.player.task.generateGameWorld(world_file)
         self.model.loadMap(world_file)
-        set_grayscale()
 
     def set_player(self, player):
         self.player = player
@@ -381,6 +379,7 @@ class Game:
         """
 
         self.world_counter += 1
+        self.on_draw()
         #time.sleep(0.1)
         #print self.world_counter
         if self.world_counter >= self.player.task.MAXIMUM_GAME_FRAMES:
@@ -431,13 +430,18 @@ class Game:
 
     def get_screen(self):
         """Get a screen shot of the current game state"""
-        PIXEL_BYTE_SIZE = 1  # Use 1 for grayscale, 4 for RGBA
+        PIXEL_BYTE_SIZE = 4  # Use 1 for grayscale, 4 for RGBA
         # Initialize an array to store the screenshot pixels
-        screenshot = (GLubyte * (PIXEL_BYTE_SIZE * self.width * self.height))(0)
+        screenshot = (GLubyte * (PIXEL_BYTE_SIZE * TRAIN_WINDOW_SIZE * TRAIN_WINDOW_SIZE))(0)
         # Grab a screenshot
-        glReadPixels(0, 0, self.width, self.height, GL_LUMINANCE, GL_UNSIGNED_BYTE, screenshot)
+        # glReadPixels(0, 0, TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE, GL_LUMINANCE, GL_UNSIGNED_BYTE, screenshot)
+        glReadPixels(0, 0, TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE, GL_RGB, GL_UNSIGNED_BYTE, screenshot)
 
-        return screenshot
+        # return screenshot
+
+        rgb = Image.frombytes(mode="RGB", size=(TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE), data=screenshot)
+        return rgb
+        # return rgb
 
 
     def collide(self, position, height):
@@ -506,11 +510,12 @@ class Game:
         """
         # self.clear()
         #width, height = self.get_size()
-        glEnable(GL_DEPTH_TEST)
         glViewport(0, 0, TRAIN_WINDOW_SIZE, TRAIN_WINDOW_SIZE)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(65.0, 1.0, 0.1, 60.0)
+        gluPerspective(-65.0, 1.0, 0.1, 60.0)
+        #gluPerspective(-45.0, screenWidth/screenHeight, 1.0, 100.0);
+
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         x, y = self.player.rotation
@@ -543,13 +548,16 @@ class Game:
 
     def on_draw(self):
         """ Called by pyglet to draw the canvas."""
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         self.set_3d()
         glColor3d(1, 1, 1)
         self.model.batch.draw()
         self.draw_focused_block()
-        self.set_2d()
-        self.draw_labels()
-        self.draw_reticle()
+        # self.set_2d()
+        # self.draw_reticle()
+
+        # glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
 
@@ -572,39 +580,25 @@ def setup_fog():
     glFogf(GL_FOG_END, 60.0)
 
 
-def set_grayscale():
-    """
-    Set pixel proportions to gray scale
-    """
-    glPixelTransferf(GL_RED_SCALE, 0.299)
-    glPixelTransferf(GL_GREEN_SCALE, 0.587)
-    glPixelTransferf(GL_BLUE_SCALE, 0.114)
-
-
-def set_rgb():
-    """
-    Set pixel proportions to color
-    """
-    glPixelTransferf(GL_RED_SCALE, 1.0)
-    glPixelTransferf(GL_GREEN_SCALE, 1.0)
-    glPixelTransferf(GL_BLUE_SCALE, 1.0)
-
 def opengl_setup():
     """ Basic OpenGL configuration.
     """
     # Set the color of "clear", i.e. the sky, in rgba.
     #glClearColor(0.5, 0.69, 1.0, 1)
     glClearColor(1, 1, 1.0, 1)
+
     glEnable(GL_CULL_FACE)
+    glDepthMask(GL_TRUE)
+    glEnable(GL_DEPTH_TEST)
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-    #setup_fog()
-    set_grayscale()
+    # setup_fog()
 
-    fbo = c_uint(1)
+    fbo = c_uint(TRAIN_WINDOW_SIZE*TRAIN_WINDOW_SIZE)
     glGenFramebuffers(1, fbo)
 
-    color = c_uint(1)
+    color = c_uint(TRAIN_WINDOW_SIZE*TRAIN_WINDOW_SIZE)
     glGenRenderbuffers(1, color)
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo)
@@ -616,6 +610,19 @@ def opengl_setup():
         TRAIN_WINDOW_SIZE,
     )
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, color)
-    glBindFramebuffer(GL_FRAMEBUFFER, 0)
-    glBindRenderbuffer(GL_RENDERBUFFER, 0)
-    glReadBuffer(GL_COLOR_ATTACHMENT0)
+
+    depth = c_uint(TRAIN_WINDOW_SIZE*TRAIN_WINDOW_SIZE)
+    glGenRenderbuffers(1, depth)
+    glBindRenderbuffer(GL_RENDERBUFFER, depth)
+    glRenderbufferStorage(
+        GL_RENDERBUFFER,
+        GL_DEPTH_COMPONENT24,
+        TRAIN_WINDOW_SIZE,
+        TRAIN_WINDOW_SIZE,
+    )
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth)
+
+
+    # glBindFramebuffer(GL_FRAMEBUFFER, 0)
+    # glBindRenderbuffer(GL_RENDERBUFFER, 0)
+    # glReadBuffer(GL_COLOR_ATTACHMENT0)

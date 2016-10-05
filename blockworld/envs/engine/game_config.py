@@ -10,9 +10,7 @@ import os
 # The width and height of the viewable game window (always square)
 # For maximum speed, set this to 84 to match the scaled size (no scaling is required!)
 TEST_WINDOW_SIZE = 600
-TRAIN_WINDOW_SIZE = 84
-
-ANIMATION_GENERATION = False
+TRAIN_WINDOW_SIZE = 128
 
 # The width and height of the image sent to DeepMind
 #SCALED_WINDOW_SIZE = 84
@@ -29,9 +27,6 @@ TICKS_PER_SEC = 6000
 
 # How often to print out the total number of frames
 #COUNTER_DISPLAY_FREQUENCY = 1000
-
-# GPU Training, -1 is CPU and 0 is GPU
-#GPU = 0
 
 ##############
 # Game rules #
@@ -53,10 +48,3 @@ EXISTENCE_PENALTY = 0
 
 # If you get all the penalties, then you get zero
 STARTING_REWARD = SWING_PENALTY + EXISTENCE_PENALTY
-
-
-#
-# Tasks
-#
-# TASK = Path_Creation()
-# TASK = Walkway()
