@@ -17,6 +17,8 @@ from blockworld.envs.engine.game_config import *
 from blockworld.envs.engine.Player import Player
 from blockworld.envs.engine.ActionSet import *
 
+framebuffer = None
+
 class Model(object):
 
     def __init__(self):
@@ -583,6 +585,7 @@ def setup_fog():
 def opengl_setup():
     """ Basic OpenGL configuration.
     """
+    global framebuffer
     # Set the color of "clear", i.e. the sky, in rgba.
     #glClearColor(0.5, 0.69, 1.0, 1)
     glClearColor(1, 1, 1.0, 1)
@@ -595,13 +598,13 @@ def opengl_setup():
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
     # setup_fog()
 
-    fbo = c_uint(TRAIN_WINDOW_SIZE*TRAIN_WINDOW_SIZE)
-    glGenFramebuffers(1, fbo)
+    framebuffer = c_uint(TRAIN_WINDOW_SIZE*TRAIN_WINDOW_SIZE)
+    glGenFramebuffers(1, framebuffer)
 
     color = c_uint(TRAIN_WINDOW_SIZE*TRAIN_WINDOW_SIZE)
     glGenRenderbuffers(1, color)
 
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo)
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer)
     glBindRenderbuffer(GL_RENDERBUFFER, color)
     glRenderbufferStorage(
         GL_RENDERBUFFER,

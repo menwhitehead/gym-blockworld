@@ -1,10 +1,11 @@
 import gym
 import blockworld
 
+RENDER_MODE = 'human'
+
 # env = gym.make('Blockworld-v0')
 env = gym.make('BlockworldWalkway-v0')
 # env = gym.make('BlockworldBigworld-v0')
-
 
 env.monitor.start(".", force=True, seed=0)
 
